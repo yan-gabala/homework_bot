@@ -1,5 +1,6 @@
+"""Super_bot."""
 import json
-import logging
+import logging  # для ОК в тесте на платформе ЯП
 import os
 import sys
 import time
@@ -10,16 +11,20 @@ import telegram
 from dotenv import load_dotenv
 
 import exceptions
+import log
+
 
 load_dotenv()
+logging.basicConfig()  # для ОК в тесте на платформе ЯП
 
 
 PRACTICUM_TOKEN = os.getenv('PRACTICUM_TOKEN')
 TELEGRAM_TOKEN = os.getenv('TELEGRAM_TOKEN')
 TELEGRAM_CHAT_ID = os.getenv('TELEGRAM_CHAT_ID')
+ENDPOINT = os.getenv('ENDPOINT')
 
 RETRY_PERIOD = 600
-ENDPOINT = 'https://practicum.yandex.ru/api/user_api/homework_statuses/'
+
 HEADERS = {'Authorization': f'OAuth {PRACTICUM_TOKEN}'}
 
 
@@ -30,19 +35,9 @@ HOMEWORK_VERDICTS = {
 }
 
 
-logger = logging.getLogger(__name__)
-fileHandler = logging.FileHandler("logfile.log", encoding='utf-8')
-streamHandler = logging.StreamHandler(sys.stdout)
-formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
-logger.setLevel(logging.DEBUG)
-streamHandler.setFormatter(formatter)
-fileHandler.setFormatter(formatter)
-logger.addHandler(streamHandler)
-logger.addHandler(fileHandler)
-
-
 def send_message(bot, message: str) -> None:
     """Отправка сообщения в чат."""
+    logger = log.bot_log()
     try:
         logger.info("Начало отправки сообщения в Telegram чат")
         bot.send_message(
@@ -59,13 +54,11 @@ def send_message(bot, message: str) -> None:
 
 def get_api_answer(current_timestamp: int) -> dict:
     """Запрос на сервер Яндекса."""
-    url = ENDPOINT
-    headers = HEADERS
     timestamp = current_timestamp or int(time.time())
     payload = {'from_date': timestamp}
     try:
         homework_statuses = requests.get(
-            url, headers=headers, params=payload
+            ENDPOINT, headers=HEADERS, params=payload
         )
     except requests.RequestException as error:
         raise exceptions.GetAPIError(
@@ -85,16 +78,7 @@ def check_response(response: dict) -> list:
     """Проверяем, что пришел словарь."""
     if not isinstance(response, dict):
         raise TypeError('От сервера пришел не словарь!')
-    try:
-        homeworks = response['homeworks']
-    except KeyError as error:
-        raise KeyError(
-            f'Нет доступа по ключу - {error}'
-        )
-    except Exception as error:
-        raise exceptions.CheckResponseError(
-            f'Не получен список работ - {error}'
-        )
+    homeworks = response.get('homeworks')
     if not isinstance(homeworks, list):
         raise TypeError('Данные не являются списком!')
     return homeworks
@@ -102,13 +86,11 @@ def check_response(response: dict) -> list:
 
 def parse_status(homework):
     """Получение статуса домашней работы."""
-    try:
-        homework_name = homework['homework_name']
-        homework_status = homework['status']
-    except KeyError as key_error:
-        raise KeyError(
-            f'Нет доступа по ключу - {key_error}!'
-        )
+    homework_name = homework.get('homework_name')
+    homework_status = homework.get('status')
+    if "homework_name" not in homework:
+        message = "В словаре homework не найден ключ homework_name"
+        raise KeyError(message)
     try:
         verdict = HOMEWORK_VERDICTS[homework_status]
     except KeyError as key_error:
@@ -125,9 +107,9 @@ def check_tokens() -> bool:
 
 def main():
     """Основной метод бота."""
+    logger = log.bot_log()
     bot = telegram.Bot(token=TELEGRAM_TOKEN)
-    # дата первого запроса Sat, 25 Mar 2023 18:01:54 GMT -> 1679767314
-    current_timestamp = 1679767314
+    current_timestamp = int(time.time())
     error = None
 
     if not check_tokens():
