@@ -1,11 +1,10 @@
-"""dd."""
-
+"""Модуль настроек логирования бота проверки."""
 import logging
 import sys
 
 
 def bot_log():
-    """d."""
+    """Настройки логгера."""
     logger = logging.getLogger(__name__)
     fileHandler = logging.FileHandler("logfile.log", encoding='utf-8')
     streamHandler = logging.StreamHandler(sys.stdout)

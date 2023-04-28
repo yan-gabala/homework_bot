@@ -1,6 +1,6 @@
-"""Super_bot."""
+"""Бот проверки статуса домашенй работы."""
 import json
-import logging  # для ОК в тесте на платформе ЯП
+import logging
 import os
 import sys
 import time
@@ -15,7 +15,7 @@ import log
 
 
 load_dotenv()
-logging.basicConfig()  # для ОК в тесте на платформе ЯП
+logging.basicConfig()
 
 
 PRACTICUM_TOKEN = os.getenv('PRACTICUM_TOKEN')
@@ -86,11 +86,12 @@ def check_response(response: dict) -> list:
 
 def parse_status(homework):
     """Получение статуса домашней работы."""
-    homework_name = homework.get('homework_name')
-    homework_status = homework.get('status')
     if "homework_name" not in homework:
-        message = "В словаре homework не найден ключ homework_name"
-        raise KeyError(message)
+        raise KeyError("Не определено название домашней работы")
+    homework_name = homework.get('homework_name')
+    if "status" not in homework:
+        raise KeyError("Не определен статус домашенй работы")
+    homework_status = homework.get('status')
     try:
         verdict = HOMEWORK_VERDICTS[homework_status]
     except KeyError as key_error:
