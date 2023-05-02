@@ -1,4 +1,4 @@
-"""Бот проверки статуса домашенй работы."""
+"""Бот проверки статуса домашней работы."""
 import json
 import logging
 import os
@@ -86,12 +86,10 @@ def check_response(response: dict) -> list:
 
 def parse_status(homework):
     """Получение статуса домашней работы."""
-    if "homework_name" not in homework:
-        raise KeyError("Не определено название домашней работы")
-    homework_name = homework.get('homework_name')
-    if "status" not in homework:
-        raise KeyError("Не определен статус домашенй работы")
-    homework_status = homework.get('status')
+    if ("homework_name" or "status") not in homework:
+        raise KeyError("Нет названия и(или) статуса домашней работы")
+    homework_name = homework.get("homework_name")
+    homework_status = homework.get("status")
     try:
         verdict = HOMEWORK_VERDICTS[homework_status]
     except KeyError as key_error:
@@ -125,7 +123,8 @@ def main():
             if len(homeworks) == 0:
                 logger.debug('Статус домашней работы не изменился.')
             else:
-                message = parse_status(homeworks[0])
+                homework = homeworks[0]
+                message = parse_status(homework)
                 send_message(bot, message)
                 logger.debug(
                     f'В телеграм отправлено сообщение: {message}'
